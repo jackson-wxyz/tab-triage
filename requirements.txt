@@ -1,0 +1,6 @@
+# Core dependencies — intentionally minimal.
+# No PyTorch, no GPU libs. All LLM/embedding work goes through LM Studio's API.
+
+requests>=2.28
+trafilatura>=1.6
+beautifulsoup4>=4.12
