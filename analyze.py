@@ -419,6 +419,10 @@ def plot_rgb_umap(tabs: list[TabRecord], embeddings: np.ndarray,
         alpha=0.85, zorder=3,
     )
 
+    #zoom into the good part of the plot
+    #plt.xlim(-8.5,-1)
+    #plt.ylim(3,8)
+
     # Draw seriation path as a faint connecting line
     if seriation_order:
         path_x = [coords[seriation_order[i], 0] for i in range(len(seriation_order))]
@@ -427,7 +431,7 @@ def plot_rgb_umap(tabs: list[TabRecord], embeddings: np.ndarray,
 
     # Selective labeling: label the most "important" or highest quick-win tabs
     # plus some random ones for coverage
-    n_labels = min(40, n)
+    n_labels = min(300, n)#was 40
     # Pick top quick-win, top importance, and some random
     scored = sorted(range(n), key=lambda i: tabs[i].quick_win_score, reverse=True)
     label_indices = set(scored[:n_labels // 3])
@@ -443,7 +447,7 @@ def plot_rgb_umap(tabs: list[TabRecord], embeddings: np.ndarray,
 
     for i in label_indices:
         ax.annotate(
-            tabs[i].short_title[:30],
+            tabs[i].short_title[:45],#was :30 for shorter title length
             (coords[i, 0], coords[i, 1]),
             fontsize=4.5, ha='center', va='bottom',
             xytext=(0, 4), textcoords='offset points',
