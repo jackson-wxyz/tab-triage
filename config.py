@@ -26,6 +26,11 @@ CONTEXT_WINDOW = 16384      # for qwen 35b; adjust per model
 # ~16000 chars ≈ ~4000 tokens of article content.
 MAX_ARTICLE_CHARS = 16000
 
+# Max characters of article text to send to the embedding model.
+# ~4 chars/token, so 6000 chars ≈ 1500 tokens — safe for 2048-token models.
+# Bump higher if using a model with a larger context window.
+MAX_EMBED_CHARS = 6000
+
 # How many seconds to wait between LLM calls (be kind to your GPU)
 REQUEST_DELAY = 0.5
 

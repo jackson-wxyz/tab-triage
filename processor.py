@@ -131,11 +131,13 @@ def process_tab(url: str, client: LLMClient) -> TriageResult:
         logger.error(f"  LLM processing failed for {url}: {e}")
 
     # Step 3: Embedding
+    # Prefer raw article text (clean prose from trafilatura, no HTML noise).
+    # Fall back to LLM-generated title+summary only if fetch failed.
     try:
-        embed_text = f"{result.title}. {result.summary}"
         if fetch_result.success and fetch_result.text:
-            # Use first ~2000 chars of article for richer embedding
-            embed_text = fetch_result.text[:2000]
+            embed_text = fetch_result.text[:config.MAX_EMBED_CHARS]
+        else:
+            embed_text = f"{result.title}. {result.summary}"
         result.embedding = client.embed(embed_text)
     except Exception as e:
         logger.warning(f"  Embedding failed for {url}: {e}")
@@ -205,9 +207,13 @@ def _parse_llm_response(raw: str) -> dict:
 
     text = raw.strip()
 
-    # Strip Qwen 3 thinking tags first — these often contain braces
-    # and other JSON-like content that confuse the { } extraction below
-    text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL).strip()
+    # Strip Qwen 3 thinking blocks — these often contain braces
+    # and other JSON-like content that confuse the { } extraction below.
+    # Handle both closed (<think>...</think>) and unclosed (<think>...)
+    # tags — Qwen sometimes doesn't emit the closing tag.
+    text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL)
+    text = re.sub(r"<think>.*", "", text, flags=re.DOTALL)
+    text = text.strip()
 
     # Strip markdown code fences if present
     if text.startswith("```"):
