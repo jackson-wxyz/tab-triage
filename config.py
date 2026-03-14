@@ -6,7 +6,7 @@ to match your LM Studio setup. Everything else should work out of the box.
 """
 
 # ── LM Studio Connection ──────────────────────────────────────────────
-LM_STUDIO_BASE_URL = "http://localhost:1234/v1"
+LM_STUDIO_BASE_URL = "http://localhost:1234/v1" #or http://192.168.10.75:1234
 
 # Model names as they appear in LM Studio's model list
 CHAT_MODEL = "qwen/qwen3.5-35b-a3b" # or qwen/qwen3.5-9b
