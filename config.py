@@ -6,10 +6,10 @@ to match your LM Studio setup. Everything else should work out of the box.
 """
 
 # ── LM Studio Connection ──────────────────────────────────────────────
-LM_STUDIO_BASE_URL = "http://127.0.0.1:1234/v1"
+LM_STUDIO_BASE_URL = "http://localhost:1234/v1"
 
 # Model names as they appear in LM Studio's model list
-CHAT_MODEL = "qwen/qwen3.5-9b" # or qwen/qwen3.5-35b-a3b
+CHAT_MODEL = "qwen/qwen3.5-35b-a3b" # or qwen/qwen3.5-9b
 EMBEDDING_MODEL = "text-embedding-jina-embeddings-v5-text-nano-clustering"  # or embeddinggemma-300m-GGUF
 
 # If LM Studio requires an API key (check LM Studio > Server settings)

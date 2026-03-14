@@ -123,8 +123,9 @@ def process_tab(url: str, client: LLMClient) -> TriageResult:
         # Compute quick-win score (importance / effort, weighted by staleness)
         if result.effort > 0:
             result.quick_win_score = (
-                result.importance / result.effort
-            ) * (result.staleness / 3.0)  # staleness=3 is neutral
+                10^result.importance / 5^result.effort #exponential scale
+            ) * (0.122-0.221*result.staleness*0.129*result.staleness^2-0.01
+                 *result.staleness^3)  # percentage odds of being stale
 
     except Exception as e:
         result.llm_parse_error = str(e)
