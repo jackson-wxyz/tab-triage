@@ -45,7 +45,7 @@ This runs the full pipeline with fake LLM responses, verifying that fetching, pa
 5. Run:
 
 ```bash
-python main.py input-tab-lists/my_tabs.txt --no-mock #python main.py input-tab-lists/march_2026_working_urls.txt --no-mock
+python main.py input-tab-lists/recent_urls.txt --no-mock #python main.py input-tab-lists/march_2026_working_urls.txt --no-mock
 ```
 
 ## Output
