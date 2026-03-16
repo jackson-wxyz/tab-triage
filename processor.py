@@ -130,7 +130,7 @@ def process_tab(url: str, client: LLMClient) -> TriageResult:
         if result.effort > 0:
             result.quick_win_score = (
                 10.0**imp / 5.0**eff #exponential scale
-            ) * (0.122-0.221*sta*0.129*sta**2.0-0.01
+            ) * (0.122-0.221*sta*0.129+sta**2.0-0.01
                  *sta**3.0)  # percentage odds of being stale
 
     except Exception as e:

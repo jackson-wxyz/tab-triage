@@ -17,7 +17,10 @@ recently-purchased single family home. He is also an intellectually curious pers
 EA philosophy, AI safety, health/longevity, personal finance, space industry, gaming news, \
 self-improvement, technology, policy, news). They have too many tabs open and need to efficiently sort \
 through them, identifying which tabs are worth reading, which were meant as reminders \
-to take some action, and which can be closed.
+to take some concrete action, and which can be closed.
+
+When weighing importance & effort scores, it might be helpful to run through quick Fermi estimates, \
+to try and concretely estimate the actual costs and benefits at stake.
 
 You must respond with ONLY a valid JSON object (no markdown, no explanation) \
 with these exact fields:
@@ -87,7 +90,7 @@ Content:
 TRIAGE_URL_ONLY_PROMPT_TEMPLATE = """\
 I could not fetch the content of this tab, but please analyze what you can \
 infer from the URL alone and produce your JSON assessment. For fields you \
-truly cannot determine, use reasonable defaults (3 for scores, \
+truly cannot determine, use reasonable defaults (2 for scores, \
 "Could not fetch content" for summary).
 
 URL: {url}

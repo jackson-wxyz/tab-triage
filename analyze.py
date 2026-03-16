@@ -176,12 +176,21 @@ def compute_distance_matrix(embeddings: np.ndarray) -> np.ndarray:
 
 
 def find_optimal_k(embeddings: np.ndarray, max_k: int = 20) -> tuple[int, dict]:
-    """Use silhouette score to find the best number of clusters."""
+    """
+    Use silhouette score to find the best number of clusters,
+    respecting the MIN_CLUSTERS floor from config.
+
+    With real tab data, silhouette often picks k=2 or k=3 (one huge
+    "normal" cluster + one tiny "glitched pages" cluster), which isn't
+    useful.  MIN_CLUSTERS forces more granularity.
+    """
+    min_k = getattr(config, 'MIN_CLUSTERS', 2)
     n = len(embeddings)
     max_k = min(max_k, n - 1)
+    min_k = min(min_k, max_k)  # can't have more clusters than items
     scores = {}
 
-    for k in range(2, max_k + 1):
+    for k in range(min_k, max_k + 1):
         km = KMeans(n_clusters=k, random_state=42, n_init=10)
         labels = km.fit_predict(embeddings)
         if len(set(labels)) < 2:
@@ -189,7 +198,8 @@ def find_optimal_k(embeddings: np.ndarray, max_k: int = 20) -> tuple[int, dict]:
         scores[k] = silhouette_score(embeddings, labels, metric='cosine')
 
     best_k = max(scores, key=scores.get)
-    print(f"  Optimal k={best_k} (silhouette={scores[best_k]:.3f})")
+    print(f"  Optimal k={best_k} (silhouette={scores[best_k]:.3f})"
+          f"  [searched k={min_k}..{max_k}]")
     return best_k, scores
 
 
@@ -513,6 +523,103 @@ def plot_rgb_umap(tabs: list[TabRecord], embeddings: np.ndarray,
     print(f"  Saved: {filename}")
 
 
+def plot_cluster_umap(tabs: list[TabRecord], embeddings: np.ndarray,
+                      cluster_labels: np.ndarray, cluster_names: dict,
+                      filename: str):
+    """
+    2D UMAP colored by cluster assignment.
+
+    More interpretable than the 5D RGB plot for understanding "what are
+    my tabs about" — each cluster gets a distinct color with a legend.
+    """
+    try:
+        import umap
+    except ImportError:
+        print("  umap-learn not installed — skipping cluster UMAP plot")
+        return
+
+    n = len(tabs)
+    n_neighbors = min(15, n - 2)
+    n_clusters = len(set(cluster_labels))
+
+    print("  Running 2D UMAP projection...")
+    reducer = umap.UMAP(
+        n_components=2, n_neighbors=n_neighbors, min_dist=0.15,
+        metric='cosine', random_state=42, spread=1.5,
+    )
+    coords = reducer.fit_transform(embeddings)
+
+    # Use a qualitative colormap with enough distinct colors
+    if n_clusters <= 10:
+        cmap = cm.get_cmap('tab10', 10)
+    elif n_clusters <= 20:
+        cmap = cm.get_cmap('tab20', 20)
+    else:
+        cmap = cm.get_cmap('gist_ncar', n_clusters)
+
+    dot_size = max(20, min(150, 3500 / n))
+    edge_width = max(0.2, min(0.6, 20 / n))
+
+    fig, ax = plt.subplots(figsize=(18, 12))
+
+    # Plot each cluster separately for the legend
+    unique_clusters = sorted(set(cluster_labels))
+    for c in unique_clusters:
+        mask = cluster_labels == c
+        name = cluster_names.get(c, f"Cluster {c}")
+        color = cmap(c % cmap.N)
+        ax.scatter(
+            coords[mask, 0], coords[mask, 1],
+            c=[color], s=dot_size, label=name,
+            edgecolors='black', linewidths=edge_width,
+            alpha=0.8, zorder=3,
+        )
+
+        # Add a cluster centroid label
+        cx, cy = coords[mask, 0].mean(), coords[mask, 1].mean()
+        # Strip the count suffix for the centroid label
+        short_name = name.rsplit(' (', 1)[0] if ' (' in name else name
+        ax.annotate(
+            short_name,
+            (cx, cy),
+            fontsize=9, fontweight='bold', ha='center', va='center',
+            bbox=dict(boxstyle='round,pad=0.3', facecolor='white',
+                      alpha=0.85, edgecolor=color, linewidth=1.5),
+            zorder=5,
+        )
+
+    # Selective individual labels for high-importance tabs
+    n_labels = min(30, n // 3)
+    scored = sorted(range(n), key=lambda i: tabs[i].importance, reverse=True)
+    for i in scored[:n_labels]:
+        ax.annotate(
+            tabs[i].short_title[:35],
+            (coords[i, 0], coords[i, 1]),
+            fontsize=5, ha='center', va='bottom',
+            xytext=(0, 5), textcoords='offset points',
+            alpha=0.7,
+        )
+
+    ax.set_xlabel('UMAP Dim 1', fontsize=11)
+    ax.set_ylabel('UMAP Dim 2', fontsize=11)
+    ax.set_title(
+        f'Tab Clusters — {n} tabs, {n_clusters} clusters\n'
+        'Colors = cluster assignment  |  Labels = cluster names',
+        fontsize=14, fontweight='bold',
+    )
+
+    # Legend outside the plot
+    ax.legend(
+        loc='center left', bbox_to_anchor=(1.02, 0.5),
+        fontsize=8, framealpha=0.9, title='Clusters',
+        title_fontsize=10,
+    )
+
+    plt.savefig(filename, dpi=150, bbox_inches='tight')
+    plt.close()
+    print(f"  Saved: {filename}")
+
+
 def plot_cluster_summary(tabs: list[TabRecord], cluster_labels: np.ndarray,
                          cluster_names: dict, filename: str):
     """
@@ -780,19 +887,25 @@ def main():
     # ── Visualizations ────────────────────────────────────────────────
     print(f"\n🎨 Generating visualizations...")
 
-    print("\n  [1/3] 5D RGB UMAP plot...")
+    print("\n  [1/4] 2D Cluster UMAP plot...")
+    plot_cluster_umap(
+        tabs, embeddings, cluster_labels, cluster_names,
+        os.path.join(output_dir, 'tab_clusters_2d.png'),
+    )
+
+    print("\n  [2/4] 5D RGB UMAP plot...")
     plot_rgb_umap(
         tabs, embeddings, cluster_labels, cluster_names,
         best_order, os.path.join(output_dir, 'tab_map_5d_rgb.png'),
     )
 
-    print("\n  [2/3] Cluster summary...")
+    print("\n  [3/4] Cluster summary...")
     plot_cluster_summary(
         tabs, cluster_labels, cluster_names,
         os.path.join(output_dir, 'cluster_summary.png'),
     )
 
-    print("\n  [3/3] Seriation quality...")
+    print("\n  [4/4] Seriation quality...")
     plot_seriation_quality(
         tabs, dist_matrix, best_order, boundaries,
         os.path.join(output_dir, 'seriation_quality.png'),
@@ -830,6 +943,7 @@ def main():
         print(f"    ... ({len(best_order) - 30} more tabs)")
 
     print(f"\n  Outputs in {output_dir}/:")
+    print(f"    tab_clusters_2d.png   — 2D UMAP with cluster colors")
     print(f"    tab_map_5d_rgb.png    — 5D UMAP visualization")
     print(f"    cluster_summary.png   — cluster overview")
     print(f"    seriation_quality.png — seriation adjacent distances")

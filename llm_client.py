@@ -18,6 +18,37 @@ import config
 
 logger = logging.getLogger(__name__)
 
+# JSON Schema for the triage response — used by LM Studio's structured output
+# engine (grammar-based constrained decoding for GGUF models).  This guarantees
+# valid JSON at the token-sampling level, so even flaky models can't produce
+# malformed output.  Enable via USE_STRUCTURED_OUTPUT in config.py.
+TRIAGE_RESPONSE_SCHEMA = {
+    "type": "json_schema",
+    "json_schema": {
+        "name": "triage_result",
+        "strict": "true",
+        "schema": {
+            "type": "object",
+            "properties": {
+                "title":           {"type": "string"},
+                "summary":         {"type": "string"},
+                "category":        {"type": "string"},
+                "actionability":   {"type": "integer"},
+                "implied_action":  {"type": "string"},
+                "importance":      {"type": "integer"},
+                "effort":          {"type": "integer"},
+                "staleness":       {"type": "integer"},
+                "insight_density": {"type": "integer"},
+            },
+            "required": [
+                "title", "summary", "category", "actionability",
+                "implied_action", "importance", "effort",
+                "staleness", "insight_density",
+            ],
+        },
+    },
+}
+
 
 class LLMClient:
     """Client for LM Studio's OpenAI-compatible API."""
@@ -26,6 +57,7 @@ class LLMClient:
         self.mock = mock if mock is not None else config.MOCK_MODE
         self.base_url = config.LM_STUDIO_BASE_URL
         self.api_key = config.LM_STUDIO_API_KEY
+        self.use_structured_output = getattr(config, "USE_STRUCTURED_OUTPUT", False)
         self.session = requests.Session()
         self.session.headers.update({
             "Content-Type": "application/json",
@@ -59,6 +91,8 @@ class LLMClient:
             "temperature": temperature or config.CHAT_TEMPERATURE,
             "max_tokens": max_tokens or config.CHAT_MAX_TOKENS,
         }
+        if self.use_structured_output:
+            payload["response_format"] = TRIAGE_RESPONSE_SCHEMA
 
         return self._request_with_retry(
             f"{self.base_url}/chat/completions",

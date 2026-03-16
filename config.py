@@ -6,17 +6,27 @@ to match your LM Studio setup. Everything else should work out of the box.
 """
 
 # ── LM Studio Connection ──────────────────────────────────────────────
-LM_STUDIO_BASE_URL = "http://localhost:1234/v1" #or http://192.168.10.75:1234
+LM_STUDIO_BASE_URL = "http://192.168.10.75:1234/v1" #or http://localhost:1234/v1
 
 # Model names as they appear in LM Studio's model list
-CHAT_MODEL = "qwen/qwen3.5-35b-a3b" # or qwen/qwen3.5-9b
+CHAT_MODEL = "qwen/qwen3.5-9b" # or qwen/qwen3.5-35b-a3b
 EMBEDDING_MODEL = "text-embedding-jina-embeddings-v5-text-nano-clustering"  # or embeddinggemma-300m-GGUF
 
 # If LM Studio requires an API key (check LM Studio > Server settings)
 LM_STUDIO_API_KEY = "sk-lm-FaiipYw6:FVNsw8bZvEgxp61tn10X" 
 
 # ── LLM Parameters ────────────────────────────────────────────────────
-CHAT_TEMPERATURE = 0.5      # low temp for consistent structured output
+CHAT_TEMPERATURE = 0.7 # low temp for consistent output if USE_STRUCTURED_OUTPUT is false
+
+# Set True to use LM Studio's structured output (grammar-based constrained
+# decoding).  Guarantees valid JSON but adds some latency.  Only needed if
+# Qwen starts producing malformed JSON — leave False while things are working.
+USE_STRUCTURED_OUTPUT = True
+
+# Minimum number of clusters for analysis.  Silhouette score often
+# picks k=2 or k=3 (one "normal" cluster + one "glitched pages" cluster),
+# which isn't very useful.  Set this to force more granularity.
+MIN_CLUSTERS = 5
 CHAT_MAX_TOKENS =10000      # enough for thinking + summary + scores + action items
 CONTEXT_WINDOW = 16384      # 16384 for qwen 35b; up to 65536 for qwen 9b
 
